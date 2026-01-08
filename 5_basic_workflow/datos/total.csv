@@ -1,0 +1,7 @@
+vuelo_id,origen,destino,fecha,retraso_minutos
+1,MAD,BCN,2024-01-01,15
+2,MAD,VAL,2024-01-01,0
+3,BCN,MAD,2024-01-02,5
+4,BCN,SEV,2024-01-02,0
+5,VAL,MAD,2024-01-03,30
+6,MAD,BCN,2024-01-03,10
