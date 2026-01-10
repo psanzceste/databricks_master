@@ -1,0 +1,155 @@
+resources:
+  jobs:
+    BloqueV_Workflow:
+      name: BloqueV Workflow
+      tasks:
+        - task_key: Ingesta
+          spark_python_task:
+            python_file: /Workspace/Users/psanzc.databricks@gmail.com/databricks_master/5_basic_workflow/workflow/src/01_ingesta_datos.py
+            parameters:
+              - --input_file
+              - /Volumes/master/bloquev/workflow/aeropuertos (1).csv
+              - --output_table
+              - master.bronce.dim_aeropuertos
+              - --write_mode
+              - overwrite
+              - --partition_by
+              - ""
+          environment_key: Default
+        - task_key: Plata
+          depends_on:
+            - task_key: Ingesta
+          spark_python_task:
+            python_file: /Workspace/Users/psanzc.databricks@gmail.com/databricks_master/5_basic_workflow/workflow/src/02_validar_datos.py
+            parameters:
+              - --input_table
+              - master.bronce.dim_aeropuertos
+              - --output_table
+              - master.plata.dim_aeropuertos
+              - --config_path
+              - /Volumes/master/bloquev/workflow/config.json
+              - --table_name
+              - aeropuertos
+          environment_key: Default
+        - task_key: ingesta_2
+          spark_python_task:
+            python_file: /Workspace/Users/psanzc.databricks@gmail.com/databricks_master/5_basic_workflow/workflow/src/01_ingesta_datos.py
+            parameters:
+              - --input_file
+              - /Volumes/master/bloquev/workflow/aeronaves.csv
+              - --output_table
+              - master.bronce.dim_aeronaves
+              - --write_mode
+              - overwrite
+              - --partition_by
+              - ""
+          environment_key: Default
+        - task_key: ingesta_3
+          spark_python_task:
+            python_file: /Workspace/Users/psanzc.databricks@gmail.com/databricks_master/5_basic_workflow/workflow/src/01_ingesta_datos.py
+            parameters:
+              - --input_file
+              - /Volumes/master/bloquev/workflow/vuelos_diarios.csv
+              - --output_table
+              - master.bronce.fact_vuelos
+              - --write_mode
+              - overwrite
+              - --partition_by
+              - ""
+          environment_key: Default
+        - task_key: ingesta_4
+          spark_python_task:
+            python_file: /Workspace/Users/psanzc.databricks@gmail.com/databricks_master/5_basic_workflow/workflow/src/01_ingesta_datos.py
+            parameters:
+              - --input_file
+              - /Volumes/master/bloquev/workflow/mantenimientos_rds (3).csv
+              - --output_table
+              - master.bronce.fact_mantenimiento
+              - --write_mode
+              - overwrite
+              - --partition_by
+              - mantenimiento_id
+          environment_key: Default
+        - task_key: plata_2
+          depends_on:
+            - task_key: ingesta_2
+          spark_python_task:
+            python_file: /Workspace/Users/psanzc.databricks@gmail.com/databricks_master/5_basic_workflow/workflow/src/02_validar_datos.py
+            parameters:
+              - --input_table
+              - master.bronce.dim_aeronaves
+              - --output_table
+              - master.plata.dim_aeronaves
+              - --config_path
+              - /Volumes/master/bloquev/workflow/config.json
+              - --table_name
+              - aeronaves
+          environment_key: Default
+        - task_key: plata_3
+          depends_on:
+            - task_key: ingesta_3
+          spark_python_task:
+            python_file: /Workspace/Users/psanzc.databricks@gmail.com/databricks_master/5_basic_workflow/workflow/src/02_validar_datos.py
+            parameters:
+              - --input_table
+              - master.bronce.fact_vuelos
+              - --output_table
+              - master.plata.fact_vuelos
+              - --config_path
+              - /Volumes/master/bloquev/workflow/config.json
+              - --table_name
+              - vuelos
+          environment_key: Default
+        - task_key: plata_4
+          depends_on:
+            - task_key: ingesta_4
+          spark_python_task:
+            python_file: /Workspace/Users/psanzc.databricks@gmail.com/databricks_master/5_basic_workflow/workflow/src/02_validar_datos.py
+            parameters:
+              - --input_table
+              - master.bronce.fact_mantenimiento
+              - --output_table
+              - master.plata.fact_mantenimiento
+              - --config_path
+              - /Volumes/master/bloquev/workflow/config.json
+              - --table_name
+              - mantenimientos
+          environment_key: Default
+        - task_key: Oro_1
+          depends_on:
+            - task_key: Plata
+            - task_key: plata_2
+            - task_key: plata_3
+          spark_python_task:
+            python_file: /Workspace/Users/psanzc.databricks@gmail.com/databricks_master/5_basic_workflow/workflow/src/03_puntualidad_vuelos.py
+            parameters:
+              - --vuelos_table
+              - master.plata.fact_vuelos
+              - --aeronaves_table
+              - master.plata.dim_aeronaves
+              - --aeropuertos_table
+              - master.plata.dim_aeropuertos
+              - --output_table
+              - master.oro.puntualidad_vuelos
+          environment_key: Default
+        - task_key: Oro_2
+          depends_on:
+            - task_key: plata_2
+            - task_key: plata_4
+          spark_python_task:
+            python_file: /Workspace/Users/psanzc.databricks@gmail.com/databricks_master/5_basic_workflow/workflow/src/04_costo_mantenimiento.py
+            parameters:
+              - --aeronaves_table
+              - master.plata.dim_aeronaves
+              - --mantenimiento_table
+              - master.plata.fact_mantenimiento
+              - --output_table
+              - master.oro.costo_mantenimiento
+          environment_key: Default
+      queue:
+        enabled: true
+      environments:
+        - environment_key: Default
+          spec:
+            environment_version: "4"
+      performance_target: PERFORMANCE_OPTIMIZED
